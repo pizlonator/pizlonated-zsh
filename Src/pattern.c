@@ -84,8 +84,20 @@
  */
 union upat {
     long l;
-    unsigned char *p;
+    unsigned long pish;
 };
+
+static zptrtable* upat_table;
+
+static unsigned long p_encode(unsigned char *p)
+{
+    return zptrtable_encode(upat_table, p);
+}
+
+static unsigned char *p_decode(unsigned long pish)
+{
+    return zptrtable_decode(upat_table, pish);
+}
 
 typedef union upat *Upat;
 
@@ -509,6 +521,7 @@ patcompcharsset(void)
 void
 patcompstart(void)
 {
+    upat_table = zptrtable_new();
     patcompcharsset();
     if (isset(CASEGLOB))
 	patglobflags = 0;
@@ -1666,7 +1679,7 @@ patcomppiece(int *flagp, int paren)
 	    }
 	}
 	patparse++;
-	countargs[P_CT_PTR].p = NULL;
+	countargs[P_CT_PTR].pish = 0;
 	/* Mark this chain as a min/max count... */
 	patinsert(P_COUNTSTART, starter, (char *)countargs, sizeof(countargs));
 	/*
@@ -2975,9 +2988,9 @@ patmatch(Upat prog)
 		after = P_OPERAND(scan);
 		DPUTS(!P_ISEXCLUDE(after),
 		      "BUG: EXCSYNC not followed by EXCLUDE.");
-		DPUTS(!P_OPERAND(after)->p,
+		DPUTS(!P_OPERAND(after)->pish,
 		      "BUG: EXCSYNC not handled by EXCLUDE");
-		syncptr = P_OPERAND(after)->p + (patinput - patinstart);
+		syncptr = p_decode(P_OPERAND(after)->pish) + (patinput - patinstart);
 		/*
 		 * If we already matched from here, this time we fail.
 		 * See WBRANCH code for story about error count.
@@ -3060,9 +3073,9 @@ patmatch(Upat prog)
 			 * (foo~bar)(foo~bar)... from the exclusion point
 			 * of view, so we use a different sync string.
 			 */
-			oldsyncstr = syncstrp->p;
-			syncstrp->p = (unsigned char *)
-			    zshcalloc((patinend - patinstart) + 1);
+			oldsyncstr = p_decode(syncstrp->pish);
+			syncstrp->pish = p_encode((unsigned char *)
+			    zshcalloc((patinend - patinstart) + 1));
 			origpatinend = patinend;
 			while ((ret = patmatch(P_OPERAND(scan)))) {
 			    unsigned char *syncpt;
@@ -3082,9 +3095,9 @@ patmatch(Upat prog)
 			     * possibilities for approximation have been
 			     * checked.)
 			     */
-			    for (syncpt = syncstrp->p; !*syncpt; syncpt++)
+			    for (syncpt = p_decode(syncstrp->pish); !*syncpt; syncpt++)
 				;
-			    synclen = syncpt - syncstrp->p;
+			    synclen = syncpt - p_decode(syncstrp->pish);
 			    if (patinstart + synclen != patinend) {
 				/*
 				 * Temporarily mark the string as
@@ -3157,9 +3170,9 @@ patmatch(Upat prog)
 			    patglobflags = savglobflags;
 			    errsfound = saverrsfound;
 			}
-			zfree((char *)syncstrp->p,
+			zfree((char *)p_decode(syncstrp->pish),
 			      (patinend - patinstart) + 1);
-			syncstrp->p = oldsyncstr;
+			syncstrp->pish = p_encode(oldsyncstr);
 			if (ret) {
 			    patinput = matchpt;
 			    errsfound = matchederrs;
@@ -3190,12 +3203,12 @@ patmatch(Upat prog)
 			     */
 			    opnd = P_OPERAND(scan);
 			    ptrp = opnd++;
-			    if (!ptrp->p) {
-				ptrp->p = (unsigned char *)
-				    zshcalloc((patinend - patinstart) + 1);
+			    if (!ptrp->pish) {
+				ptrp->pish = p_encode((unsigned char *)
+				    zshcalloc((patinend - patinstart) + 1));
 				pfree = 1;
 			    }
-			    ptr = ptrp->p + (patinput - patinstart);
+			    ptr = p_decode(ptrp->pish) + (patinput - patinstart);
 
 			    /*
 			     * Without approximation, this is just a
@@ -3216,9 +3229,9 @@ patmatch(Upat prog)
 			if (ret)
 			    ret = patmatch(opnd);
 			if (pfree) {
-			    zfree((char *)ptrp->p,
+			    zfree((char *)p_decode(ptrp->pish),
 				  (patinend - patinstart) + 1);
-			    ptrp->p = NULL;
+			    ptrp->pish = 0;
 			}
 			if (ret)
 			    return 1;
@@ -3372,13 +3385,13 @@ patmatch(Upat prog)
 		 */
 		long *curptr = &P_OPERAND(scan)[P_CT_CURRENT].l;
 		long savecount = *curptr;
-		unsigned char *saveptr = scan[P_CT_PTR].p;
+		unsigned char *saveptr = p_decode(scan[P_CT_PTR].pish);
 		int ret;
 
 		*curptr = 0L;
 		ret = patmatch(P_OPERAND(scan));
 		*curptr = savecount;
-		scan[P_CT_PTR].p = saveptr;
+		scan[P_CT_PTR].pish = p_encode(saveptr);
 		return ret;
 	    }
 	case P_COUNT:
@@ -3389,7 +3402,7 @@ patmatch(Upat prog)
 		long max = scan[P_CT_MAX].l;
 
 		if (cur && cur >= min &&
-		    (unsigned char *)patinput == scan[P_CT_PTR].p) {
+		    (unsigned char *)patinput == p_decode(scan[P_CT_PTR].pish)) {
 		    /*
 		     * Not at the first attempt to match so
 		     * the previous attempt managed zero length.
@@ -3399,7 +3412,7 @@ patmatch(Upat prog)
 		     */
 		    return patmatch(next);
 		}
-		scan[P_CT_PTR].p = (unsigned char *)patinput;
+		scan[P_CT_PTR].pish = p_encode((unsigned char *)patinput);
 
 		if (max < 0 || cur < max) {
 		    char *patinput_thistime = patinput;
