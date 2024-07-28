@@ -1795,14 +1795,18 @@ struct param {
     struct hashnode node;
 
     /* the value of this parameter */
-    union {
-	void *data;		/* used by special parameter functions    */
-	char **arr;		/* value if declared array   (PM_ARRAY)   */
-	char *str;		/* value if declared string  (PM_SCALAR)  */
-	zlong val;		/* value if declared integer (PM_INTEGER) */
-	zlong *valptr;		/* value if special pointer to integer */
-	double dval;		/* value if declared float
+    struct {
+        union {
+            void *data;		/* used by special parameter functions    */
+            char **arr;		/* value if declared array   (PM_ARRAY)   */
+            char *str;		/* value if declared string  (PM_SCALAR)  */
+            zlong *valptr;	/* value if special pointer to integer */
+        };
+        union {
+            zlong val;		/* value if declared integer (PM_INTEGER) */
+            double dval;	/* value if declared float
 				                    (PM_EFLOAT|PM_FFLOAT) */
+        };
         HashTable hash;		/* value if declared assoc   (PM_HASHED)  */
     } u;
 

@@ -576,6 +576,9 @@ zheapptr(void *p)
 mod_export void *
 zhalloc(size_t size)
 {
+    if ((1))
+        return malloc(size);
+    
     Heap h, hp = NULL;
     size_t n;
 #ifdef ZSH_VALGRIND
