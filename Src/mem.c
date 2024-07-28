@@ -707,6 +707,12 @@ hrealloc(char *p, size_t old, size_t new)
 	return zhalloc(new);
 #endif
 
+    if ((1)) {
+        char* result = malloc(new);
+        memcpy(result, p, old < new ? old : new);
+        return result;
+    }
+    
     /* find the heap with p */
 
     queue_signals();

@@ -70,6 +70,7 @@
  */
 
 #include "zsh.mdh"
+#include <stdfil.h>
 
 /*
  * The following union is used mostly for alignment purposes.
@@ -819,7 +820,7 @@ patcompswitch(int paren, int *flagp)
 		br = patnode(P_EXCLUDP);
 		patflags |= PAT_HAS_EXCLUDP;
 	    }
-	    up.p = NULL;
+            memset(&up, 0, sizeof(up));
 	    patadd((char *)&up, 0, sizeof(up), 0);
 	    /* / is not treated as special if we are at top level */
 	    if (!paren && zpc_special[ZPC_SLASH] == '/') {
@@ -1704,7 +1705,7 @@ patcomppiece(int *flagp, int paren)
 	patinsert(op, starter, NULL, 0);
     } else if (op == P_ONEHASH) {
 	/* Emit x# as (x&|), where & means "self". */
-	up.p = NULL;
+        memset(&up, 0, sizeof(up));
 	patinsert(P_WBRANCH, starter, (char *)&up, sizeof(up));
 	                                      /* Either x */
 	patoptail(starter, patnode(P_BACK));  /* and loop */
@@ -1714,7 +1715,7 @@ patcomppiece(int *flagp, int paren)
     } else if (op == P_TWOHASH) {
 	/* Emit x## as x(&|) where & means "self". */
 	next = patnode(P_WBRANCH);	      /* Either */
-	up.p = NULL;
+        memset(&up, 0, sizeof(up));
 	patadd((char *)&up, 0, sizeof(up), 0);
 	pattail(starter, next);
 	pattail(patnode(P_BACK), starter);    /* loop back */
@@ -1755,7 +1756,7 @@ patcompnot(int paren, int *flagsp)
     excsync = patnode(P_EXCSYNC);
     pattail(br, excsync);
     pattail(starter, excl = patnode(P_EXCLUDE));
-    up.p = NULL;
+    memset(&up, 0, sizeof(up));
     patadd((char *)&up, 0, sizeof(up), 0);
     if (!(br = (paren ? patcompswitch(1, &dummy) : patcompbranch(&dummy, 0))))
 	return 0;
