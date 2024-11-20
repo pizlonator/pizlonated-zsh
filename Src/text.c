@@ -363,7 +363,7 @@ struct tstack {
     Tstack prev;
     wordcode code;
     int pop;
-    struct {
+    union {
 	struct {
 	    LinkList list;
 	} _redir;

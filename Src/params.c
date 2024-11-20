@@ -271,7 +271,7 @@ static const struct gsu_integer rprompt_indent_gsu =
 /* Nodes for special parameters for parameter hash table */
 
 #ifdef HAVE_UNION_INIT
-# define BR(X) {{X},{0},{}}
+# define BR(X) {X}
 typedef struct param initparam;
 #else
 # define BR(X) X
@@ -291,8 +291,8 @@ typedef struct iparam {
 #endif
 
 static initparam special_params[] ={
-#define GSU(X) {((GsuScalar)(void *)(&(X)))}
-#define NULL_GSU {((GsuScalar)(void *)NULL)}
+#define GSU(X) BR((GsuScalar)(void *)(&(X)))
+#define NULL_GSU BR((GsuScalar)(void *)NULL)
 #define IPDEF1(A,B,C) {{NULL,A,PM_INTEGER|PM_SPECIAL|C},BR(NULL),GSU(B),10,0,NULL,NULL,NULL,0}
 IPDEF1("#", pound_gsu, PM_READONLY_SPECIAL),
 IPDEF1("ERRNO", errno_gsu, PM_UNSET),
